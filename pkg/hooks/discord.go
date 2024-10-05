@@ -14,8 +14,9 @@ import (
 
 type (
 	discordCriticalHook struct {
-		resource string
-		queueUrl string
+		resource    string
+		queueUrl    string
+		endpointUrl string
 	}
 
 	message struct {
@@ -30,10 +31,11 @@ type (
 	}
 )
 
-func NewDiscordCriticalHook(resource string, queueUrl string) logrus.Hook {
+func NewDiscordCriticalHook(resource, queueUrl, endpointUrl string) logrus.Hook {
 	return discordCriticalHook{
-		resource: resource,
-		queueUrl: queueUrl,
+		resource:    resource,
+		queueUrl:    queueUrl,
+		endpointUrl: endpointUrl,
 	}
 }
 
@@ -65,7 +67,7 @@ func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 		})
 	}
 
-	_, err := sendMessage(hook.queueUrl, hook.resource, message{
+	_, err := sendMessage(hook.queueUrl, hook.resource, hook.endpointUrl, message{
 		Title:       fmt.Sprintf("Houve um erro na execução!"),
 		Description: entry.Message,
 		Metadata:    meta,
@@ -78,14 +80,18 @@ func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	return err
 }
 
-func sendMessage(queueUrl, messageGroupId string, messageBody message) (*sqs.SendMessageOutput, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-
+func sendMessage(queueUrl, messageGroupId, endpointUrl string, messageBody message) (*sqs.SendMessageOutput, error) {
+	ctx := context.TODO()
+	cfg, err := config.LoadDefaultConfig(ctx)
 	var result *sqs.SendMessageOutput
 	if err != nil {
 		return nil, fmt.Errorf("falha ao carregar a configuração da AWS: %w", err)
 	}
-	sqsClient := sqs.NewFromConfig(cfg)
+
+	sqsClient := sqs.NewFromConfig(cfg, func(options *sqs.Options) {
+		options.BaseEndpoint = aws.String(endpointUrl)
+		options.EndpointResolverV2 = sqsEndpointResolver{}
+	})
 	converted, err := json.Marshal(messageBody)
 
 	if err != nil {
