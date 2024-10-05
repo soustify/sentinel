@@ -4,16 +4,16 @@ import "github.com/soustify/sentinel/pkg/constant"
 
 type (
 	DiscordMessage struct {
-		Title       string
-		Description string
-		Metadata    DiscordMetadaList
+		Title       string            `json:"title"`
+		Description string            `json:"description"`
+		Metadata    DiscordMetadaList `json:"metadata"`
 	}
 
 	DiscordMetadaList []DiscordMetadata
 
 	DiscordMetadata struct {
-		Name  string
-		Value string
+		Name  string `json:"name"`
+		Value string `json:"value"`
 	}
 )
 
