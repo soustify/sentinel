@@ -90,7 +90,7 @@ func sendMessage(queueUrl, messageGroupId, endpointUrl string, messageBody Disco
 
 	sqsClient := sqs.NewFromConfig(cfg, func(options *sqs.Options) {
 		options.BaseEndpoint = aws.String(endpointUrl)
-		options.EndpointResolverV2 = sqsEndpointResolver{}
+		options.EndpointResolverV2 = SqsEndpointResolver{}
 	})
 	converted, err := json.Marshal(messageBody)
 
