@@ -19,13 +19,13 @@ type (
 		endpointUrl string
 	}
 
-	message struct {
+	DiscordMessage struct {
 		Title       string
 		Description string
-		Metadata    []metadata
+		Metadata    []DiscordMetadata
 	}
 
-	metadata struct {
+	DiscordMetadata struct {
 		Name  string
 		Value string
 	}
@@ -48,26 +48,26 @@ func (p discordCriticalHook) Levels() []logrus.Level {
 
 func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	_, file, line, ok := runtime.Caller(9)
-	meta := make([]metadata, 0)
+	meta := make([]DiscordMetadata, 0)
 
-	meta = append(meta, metadata{
+	meta = append(meta, DiscordMetadata{
 		Name:  "severity",
 		Value: entry.Level.String(),
 	})
 
-	meta = append(meta, metadata{
+	meta = append(meta, DiscordMetadata{
 		Name:  "resource",
 		Value: hook.resource,
 	})
 
 	if ok {
-		meta = append(meta, metadata{
+		meta = append(meta, DiscordMetadata{
 			Name:  "file",
 			Value: fmt.Sprintf("%s:%d", file, line),
 		})
 	}
 
-	_, err := sendMessage(hook.queueUrl, hook.resource, hook.endpointUrl, message{
+	_, err := sendMessage(hook.queueUrl, hook.resource, hook.endpointUrl, DiscordMessage{
 		Title:       fmt.Sprintf("Houve um erro na execução!"),
 		Description: entry.Message,
 		Metadata:    meta,
@@ -80,7 +80,7 @@ func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	return err
 }
 
-func sendMessage(queueUrl, messageGroupId, endpointUrl string, messageBody message) (*sqs.SendMessageOutput, error) {
+func sendMessage(queueUrl, messageGroupId, endpointUrl string, messageBody DiscordMessage) (*sqs.SendMessageOutput, error) {
 	ctx := context.TODO()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	var result *sqs.SendMessageOutput
