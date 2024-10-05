@@ -1,4 +1,4 @@
-package hooks
+package publisher
 
 import (
 	"context"
@@ -8,11 +8,11 @@ import (
 )
 
 type (
-	SqsEndpointResolver struct {
+	sqsEndpointResolver struct {
 	}
 )
 
-func (s SqsEndpointResolver) ResolveEndpoint(ctx context.Context, params sqs.EndpointParameters) (transport.Endpoint, error) {
+func (s sqsEndpointResolver) ResolveEndpoint(ctx context.Context, params sqs.EndpointParameters) (transport.Endpoint, error) {
 	fmt.Printf("The endpoint provided in config is %s\n", *params.Endpoint)
 	return sqs.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }

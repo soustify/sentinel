@@ -1,14 +1,10 @@
 package hooks
 
 import (
-	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/sirupsen/logrus"
+	"github.com/soustify/sentinel/pkg/message"
+	"github.com/soustify/sentinel/pkg/publisher"
 	"runtime"
 )
 
@@ -17,17 +13,6 @@ type (
 		resource    string
 		queueUrl    string
 		endpointUrl string
-	}
-
-	DiscordMessage struct {
-		Title       string
-		Description string
-		Metadata    []DiscordMetadata
-	}
-
-	DiscordMetadata struct {
-		Name  string
-		Value string
 	}
 )
 
@@ -48,26 +33,26 @@ func (p discordCriticalHook) Levels() []logrus.Level {
 
 func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	_, file, line, ok := runtime.Caller(9)
-	meta := make([]DiscordMetadata, 0)
+	meta := make([]message.DiscordMetadata, 0)
 
-	meta = append(meta, DiscordMetadata{
+	meta = append(meta, message.DiscordMetadata{
 		Name:  "severity",
 		Value: entry.Level.String(),
 	})
 
-	meta = append(meta, DiscordMetadata{
+	meta = append(meta, message.DiscordMetadata{
 		Name:  "resource",
 		Value: hook.resource,
 	})
 
 	if ok {
-		meta = append(meta, DiscordMetadata{
+		meta = append(meta, message.DiscordMetadata{
 			Name:  "file",
 			Value: fmt.Sprintf("%s:%d", file, line),
 		})
 	}
 
-	_, err := sendMessage(hook.queueUrl, hook.resource, hook.endpointUrl, DiscordMessage{
+	_, err := publisher.Publish(hook.queueUrl, hook.resource, hook.endpointUrl, message.DiscordMessage{
 		Title:       fmt.Sprintf("Houve um erro na execução!"),
 		Description: entry.Message,
 		Metadata:    meta,
@@ -78,36 +63,4 @@ func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	}
 
 	return err
-}
-
-func sendMessage(queueUrl, messageGroupId, endpointUrl string, messageBody DiscordMessage) (*sqs.SendMessageOutput, error) {
-	ctx := context.TODO()
-	cfg, err := config.LoadDefaultConfig(ctx)
-	var result *sqs.SendMessageOutput
-	if err != nil {
-		return nil, fmt.Errorf("falha ao carregar a configuração da AWS: %w", err)
-	}
-
-	sqsClient := sqs.NewFromConfig(cfg, func(options *sqs.Options) {
-		options.BaseEndpoint = aws.String(endpointUrl)
-		options.EndpointResolverV2 = SqsEndpointResolver{}
-	})
-	converted, err := json.Marshal(messageBody)
-
-	if err != nil {
-		return nil, err
-	}
-
-	messageDeduplicationId := fmt.Sprintf("%x", sha256.Sum256(converted))
-
-	result, err = sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		QueueUrl:               aws.String(queueUrl),
-		MessageBody:            aws.String(string(converted)),
-		MessageGroupId:         aws.String(messageGroupId),
-		MessageDeduplicationId: aws.String(messageDeduplicationId),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("falha ao enviar a mensagem para a fila SQS: %w", err)
-	}
-	return result, nil
 }
