@@ -3,6 +3,7 @@ package hooks
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"github.com/soustify/sentinel/pkg/constant"
 	"github.com/soustify/sentinel/pkg/message"
 	"github.com/soustify/sentinel/pkg/publisher"
 	"runtime"
@@ -36,12 +37,12 @@ func (hook discordCriticalHook) Fire(entry *logrus.Entry) error {
 	meta := make([]message.DiscordMetadata, 0)
 
 	meta = append(meta, message.DiscordMetadata{
-		Name:  "severity",
+		Name:  constant.Severity,
 		Value: entry.Level.String(),
 	})
 
 	meta = append(meta, message.DiscordMetadata{
-		Name:  "resource",
+		Name:  constant.Resource,
 		Value: hook.resource,
 	})
 
