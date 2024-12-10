@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/sirupsen/logrus"
 	"github.com/soustify/sentinel/pkg/message"
 )
 
@@ -19,10 +20,18 @@ func Publish(queueUrl, messageGroupId, endpointUrl string, messageBody message.D
 		return nil, fmt.Errorf("falha ao carregar a configuração da AWS: %w", err)
 	}
 
-	sqsClient := sqs.NewFromConfig(cfg, func(options *sqs.Options) {
-		options.BaseEndpoint = aws.String(endpointUrl)
-		options.EndpointResolverV2 = sqsEndpointResolver{}
-	})
+	var sqsClient *sqs.Client
+
+	if endpointUrl == "" {
+		logrus.Warn("create sqs without endpoint")
+		sqsClient = sqs.NewFromConfig(cfg)
+	} else {
+		sqsClient = sqs.NewFromConfig(cfg, func(options *sqs.Options) {
+			options.BaseEndpoint = aws.String(endpointUrl)
+			options.EndpointResolverV2 = sqsEndpointResolver{}
+		})
+	}
+
 	converted, err := json.Marshal(messageBody)
 
 	if err != nil {
