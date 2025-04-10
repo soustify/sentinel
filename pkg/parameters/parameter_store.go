@@ -36,8 +36,7 @@ func (p ParameterStoreRepository) GetParameter(ctx context.Context, name string)
 	return aws.ToString(output.Parameter.Value), nil
 }
 
-func (p ParameterStoreRepository) GetDataGatewayTokenPermission(name string) (string, error) {
-	ctx := context.Background()
+func (p ParameterStoreRepository) GetDataGatewayTokenPermission(ctx context.Context, name string) (string, error) {
 	token, err := p.GetParameter(ctx, "/data-gateway/tokens/"+name)
 	if err != nil {
 		return "", fmt.Errorf("erro ao buscar parâmetro %s: %w", name, err)
